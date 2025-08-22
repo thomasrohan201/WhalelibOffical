@@ -12,8 +12,17 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include "lemlib/chassis/whalelibchassis.hpp"
+#include "lemlib/chassis/chassis.hpp"
 using pros::delay;
- 
+
+//add breafs to the new functions
+
+
+
+
+
+
 // class ForcedImuChassis : public lemlib::Chassis {
 // public:
 //     lemlib::Pose getPose(bool radians = false, bool standardPos = false) {
@@ -168,7 +177,6 @@ void checkSDCard() {
 
     fclose(file);
 }
-
 //movetopint with goal
 
 enum class LoadState {
@@ -178,119 +186,116 @@ enum class LoadState {
     FULL_RINGS   // Mobile goal with ~8 rings
 };
 
-struct PIDConfig {
-    struct { double kp, ki, kd; } linear;
-    struct { double kp, ki, kd; } angular;
-};
-
-const std::unordered_map<LoadState, PIDConfig> PID_GAINS = {
-    // Normal mode (will use your existing lemlib defaults)
-    {LoadState::NORMAL, {
-        .linear  = {0, 0, 0},  // Placeholder - won't be used
-        .angular = {0, 0, 0}    // Placeholder - won't be used
-    }},
-    
-    // Your exact tuned values
-    {LoadState::EMPTY, {
-        .linear  = {32,  0.002,  4000.0},
-        .angular = {35.0, 0.04, 900.0}
-    }},
-    {LoadState::HALF_RINGS, {
-        .linear  = {32,  0.002,  4000},
-        .angular = {30.0, 0.02, 200}
-    }},
-    {LoadState::FULL_RINGS, {
-        .linear  = {32,  0.002,  4000},
-        .angular = {30,  0.02, 200}
-    }}
-};
-
-void applyDrivetrainGains(lemlib::Chassis& chassis, LoadState load) {
-    if (load == LoadState::NORMAL) {
-        // Reset to your lemlib defaults (no changes)
-        return; 
-    }
-    
-    // Apply your custom mobile goal gains
-    const auto& config = PID_GAINS.at(load);
-    chassis.setLinearGains(config.linear.kp, config.linear.ki, config.linear.kd);
-    chassis.setAngularGains(config.angular.kp, config.angular.ki, config.angular.kd);
-}
 
 
-//FOLLOW ARC
+// const std::unordered_map<LoadState, PIDConfig> PID_GAINS = {
+//     // Normal mode (will use your existing lemlib defaults)
+//     {LoadState::NORMAL, {
+//         .linear  = {0, 0, 0},  // Placeholder - won't be used
+//         .angular = {0, 0, 0}    // Placeholder - won't be used
+//     }},
+    
+//     // Your exact tuned values
+//     {LoadState::EMPTY, {
+//         .linear  = {32,  0.002,  4000.0},
+//         .angular = {35.0, 0.04, 900.0}
+//     }},
+//     {LoadState::HALF_RINGS, {
+//         .linear  = {32,  0.002,  4000},
+//         .angular = {30.0, 0.02, 200}
+//     }},
+//     {LoadState::FULL_RINGS, {
+//         .linear  = {32,  0.002,  4000},
+//         .angular = {30,  0.02, 200}
+//     }}
+// };
 
-void follow_arc(lemlib::Chassis& chassis, float end_x, float end_y, float radius, bool clockwise,
-               int timeout = 5000, bool forwards = true, float max_speed = 127,
-               float min_speed = 0, float earlyExitRange = 0) {
-    // Get current position
-    lemlib::Pose current_pos = chassis.getPose();
+// void applyDrivetrainGains(lemlib::Chassis& chassis, LoadState load) {
+//     if (load == LoadState::NORMAL) {
+//         // Reset to your lemlib defaults (no changes)
+//         return; 
+//     }
     
-    // Calculate center point of the arc
-    float chord_length = sqrt(pow(end_x - current_pos.x, 2) + pow(end_y - current_pos.y, 2));
-    float chord_angle = atan2(end_y - current_pos.y, end_x - current_pos.x);
-    float arc_angle = 2 * asin(chord_length / (2 * radius));
+//     // Apply your custom mobile goal gains
+//     const auto& config = PID_GAINS.at(load);
+//     chassis.setLinearGains(config.linear.kp, config.linear.ki, config.linear.kd);
+//     chassis.setAngularGains(config.angular.kp, config.angular.ki, config.angular.kd);
+// }
+
+
+// //FOLLOW ARC
+
+// void follow_arc(lemlib::Chassis& chassis, float end_x, float end_y, float radius, bool clockwise,
+//                int timeout = 5000, bool forwards = true, float max_speed = 127,
+//                float min_speed = 0, float earlyExitRange = 0) {
+//     // Get current position
+//     lemlib::Pose current_pos = chassis.getPose();
     
-    // Determine center point based on clockwise/counter-clockwise
-    float center_x, center_y;
-    if (clockwise) {
-        center_x = current_pos.x + radius * cos(chord_angle - M_PI_2);
-        center_y = current_pos.y + radius * sin(chord_angle - M_PI_2);
-    } else {
-        center_x = current_pos.x + radius * cos(chord_angle + M_PI_2);
-        center_y = current_pos.y + radius * sin(chord_angle + M_PI_2);
-    }
+//     // Calculate center point of the arc
+//     float chord_length = sqrt(pow(end_x - current_pos.x, 2) + pow(end_y - current_pos.y, 2));
+//     float chord_angle = atan2(end_y - current_pos.y, end_x - current_pos.x);
+//     float arc_angle = 2 * asin(chord_length / (2 * radius));
     
-    // Calculate total angle to traverse
-    float start_angle = atan2(current_pos.y - center_y, current_pos.x - center_x);
-    float end_angle = atan2(end_y - center_y, end_x - center_x);
-    float angle_diff = end_angle - start_angle;
+//     // Determine center point based on clockwise/counter-clockwise
+//     float center_x, center_y;
+//     if (clockwise) {
+//         center_x = current_pos.x + radius * cos(chord_angle - M_PI_2);
+//         center_y = current_pos.y + radius * sin(chord_angle - M_PI_2);
+//     } else {
+//         center_x = current_pos.x + radius * cos(chord_angle + M_PI_2);
+//         center_y = current_pos.y + radius * sin(chord_angle + M_PI_2);
+//     }
     
-    // Adjust angle difference for clockwise movement
-    if (clockwise) {
-        if (angle_diff > 0) angle_diff -= 2 * M_PI;
-    } else {
-        if (angle_diff < 0) angle_diff += 2 * M_PI;
-    }
+//     // Calculate total angle to traverse
+//     float start_angle = atan2(current_pos.y - center_y, current_pos.x - center_x);
+//     float end_angle = atan2(end_y - center_y, end_x - center_x);
+//     float angle_diff = end_angle - start_angle;
     
-    // Break the arc into small segments and follow them
-    const int segments = 20;
-    for (int i = 1; i <= segments; i++) {
-        float t = (float)i / segments;
-        float segment_angle = start_angle + angle_diff * t;
+//     // Adjust angle difference for clockwise movement
+//     if (clockwise) {
+//         if (angle_diff > 0) angle_diff -= 2 * M_PI;
+//     } else {
+//         if (angle_diff < 0) angle_diff += 2 * M_PI;
+//     }
+    
+//     // Break the arc into small segments and follow them
+//     const int segments = 20;
+//     for (int i = 1; i <= segments; i++) {
+//         float t = (float)i / segments;
+//         float segment_angle = start_angle + angle_diff * t;
         
-        // Calculate target point for this segment
-        float target_x = center_x + radius * cos(segment_angle);
-        float target_y = center_y + radius * sin(segment_angle);
+//         // Calculate target point for this segment
+//         float target_x = center_x + radius * cos(segment_angle);
+//         float target_y = center_y + radius * sin(segment_angle);
         
-        // Calculate target heading (tangent to the arc)
-        float target_heading;
-        if (clockwise) {
-            target_heading = segment_angle - M_PI_2;
-        } else {
-            target_heading = segment_angle + M_PI_2;
-        }
+//         // Calculate target heading (tangent to the arc)
+//         float target_heading;
+//         if (clockwise) {
+//             target_heading = segment_angle - M_PI_2;
+//         } else {
+//             target_heading = segment_angle + M_PI_2;
+//         }
         
-        // Normalize heading
-        target_heading = fmod(target_heading, 2 * M_PI);
-        if (target_heading < 0) target_heading += 2 * M_PI;
+//         // Normalize heading
+//         target_heading = fmod(target_heading, 2 * M_PI);
+//         if (target_heading < 0) target_heading += 2 * M_PI;
         
-        // Move to this segment point using designated initializers
-        chassis.moveToPoint(target_x, target_y, timeout / segments, {
-            .forwards = forwards,
-            .maxSpeed = max_speed,
-            .minSpeed = min_speed,
-            .earlyExitRange = earlyExitRange
-        });
+//         // Move to this segment point using designated initializers
+//         chassis.moveToPoint(target_x, target_y, timeout / segments, {
+//             .forwards = forwards,
+//             .maxSpeed = max_speed,
+//             .minSpeed = min_speed,
+//             .earlyExitRange = earlyExitRange
+//         });
         
-        // Turn to face tangent of the arc
-        chassis.turnToPoint(target_x, target_y, timeout / segments, {
-            .maxSpeed = static_cast<int>(max_speed),
-            .minSpeed = static_cast<int>(min_speed),
-            .earlyExitRange = earlyExitRange
-        });
-    }
-}
+//         // Turn to face tangent of the arc
+//         chassis.turnToPoint(target_x, target_y, timeout / segments, {
+//             .maxSpeed = static_cast<int>(max_speed),
+//             .minSpeed = static_cast<int>(min_speed),
+//             .earlyExitRange = earlyExitRange
+//         });
+//     }
+// }
 
 
 
@@ -300,7 +305,7 @@ void follow_arc(lemlib::Chassis& chassis, float end_x, float end_y, float radius
 
 
 
-//PID GAIN SCHEDULER
+// //PID GAIN SCHEDULER
 
 
 
@@ -308,256 +313,249 @@ void follow_arc(lemlib::Chassis& chassis, float end_x, float end_y, float radius
 
 
 
-// Define PIDGains
-struct PIDGains {
-    double kp;
-    double ki;
-    double kd;
-};
+// // Define PIDGains
+// struct PIDGains {
+//     double kp;
+//     double ki;
+//     double kd;
+// };
 
-// Helper function to interpolate between two PIDGains
-PIDGains interpolatePID(const PIDGains& gains1, const PIDGains& gains2, double t) {
-    PIDGains result;
-    result.kp = gains1.kp * (1 - t) + gains2.kp * t;
-    result.ki = gains1.ki * (1 - t) + gains2.ki * t;
-    result.kd = gains1.kd * (1 - t) + gains2.kd * t;
-    return result;
-}
+// // Helper function to interpolate between two PIDGains
+// PIDGains interpolatePID(const PIDGains& gains1, const PIDGains& gains2, double t) {
+//     PIDGains result;
+//     result.kp = gains1.kp * (1 - t) + gains2.kp * t;
+//     result.ki = gains1.ki * (1 - t) + gains2.ki * t;
+//     result.kd = gains1.kd * (1 - t) + gains2.kd * t;
+//     return result;
+// }
 
 
-void moveToPointWithScheduler(lemlib::Chassis& chassis, double x, double y, int timeout, 
-    bool forwards = true, float maxSpeed = 127, float minSpeed = 0, 
-    float earlyExitRange = 0.0) {
-    // Define PID gains for different phases (linear only)
-    PIDGains farLinearGains = {10.0, 0.0, 3.0}; // High kp for fast movement
-    PIDGains mediumLinearGains = {6.0, 0.5, 2.0}; // Moderate kp and ki for controlled movement
-    PIDGains closeLinearGains = {2.0, 0.1, 1.0}; // Low kp and kd for precision
+// void moveToPointWithScheduler(lemlib::Chassis& chassis, double x, double y, int timeout, 
+//     bool forwards = true, float maxSpeed = 127, float minSpeed = 0, 
+//     float earlyExitRange = 0.0) {
+//     // Define PID gains for different phases (linear only)
+//     PIDGains farLinearGains = {10.0, 0.0, 3.0}; // High kp for fast movement
+//     PIDGains mediumLinearGains = {6.0, 0.5, 2.0}; // Moderate kp and ki for controlled movement
+//     PIDGains closeLinearGains = {2.0, 0.1, 1.0}; // Low kp and kd for precision
 
-    // Thresholds for switching between gains
-    double farThreshold = 36.0; // Inches (switch to far gains beyond this distance)
-    double mediumThreshold = 24.0; // Inches (switch to medium gains beyond this distance)
+//     // Thresholds for switching between gains
+//     double farThreshold = 36.0; // Inches (switch to far gains beyond this distance)
+//     double mediumThreshold = 24.0; // Inches (switch to medium gains beyond this distance)
 
-    // Get the current pose of the robot
-    lemlib::Pose currentPose = chassis.getPose();
+//     // Get the current pose of the robot
+//     lemlib::Pose currentPose = chassis.getPose();
 
-    // Calculate the distance to the target (linear error)
-    double distanceToTarget = std::sqrt(std::pow(x - currentPose.x, 2) + std::pow(y - currentPose.y, 2));
+//     // Calculate the distance to the target (linear error)
+//     double distanceToTarget = std::sqrt(std::pow(x - currentPose.x, 2) + std::pow(y - currentPose.y, 2));
 
-    // Interpolate linear gains based on distance
-    PIDGains selectedLinearGains;
-    if (distanceToTarget > farThreshold) {
-        selectedLinearGains = farLinearGains; // Use far gains for fast movement
-    } else if (distanceToTarget > mediumThreshold) {
-    // Interpolate between far and medium gains
-        double t = (distanceToTarget - mediumThreshold) / (farThreshold - mediumThreshold);
-        selectedLinearGains = interpolatePID(mediumLinearGains, farLinearGains, t);
-    } else if (distanceToTarget > 0) {
-    // Interpolate between medium and close gains
-        double t = distanceToTarget / mediumThreshold;
-        selectedLinearGains = interpolatePID(closeLinearGains, mediumLinearGains, t);
-    } else {
-        selectedLinearGains = closeLinearGains; // Use close gains for precision
-    }
+//     // Interpolate linear gains based on distance
+//     PIDGains selectedLinearGains;
+//     if (distanceToTarget > farThreshold) {
+//         selectedLinearGains = farLinearGains; // Use far gains for fast movement
+//     } else if (distanceToTarget > mediumThreshold) {
+//     // Interpolate between far and medium gains
+//         double t = (distanceToTarget - mediumThreshold) / (farThreshold - mediumThreshold);
+//         selectedLinearGains = interpolatePID(mediumLinearGains, farLinearGains, t);
+//     } else if (distanceToTarget > 0) {
+//     // Interpolate between medium and close gains
+//         double t = distanceToTarget / mediumThreshold;
+//         selectedLinearGains = interpolatePID(closeLinearGains, mediumLinearGains, t);
+//     } else {
+//         selectedLinearGains = closeLinearGains; // Use close gains for precision
+//     }
 
-    // Update the linear controller gains
-    chassis.setLinearGains(selectedLinearGains.kp, selectedLinearGains.ki, selectedLinearGains.kd);
+//     // Update the linear controller gains
+//     chassis.setLinearGains(selectedLinearGains.kp, selectedLinearGains.ki, selectedLinearGains.kd);
 
-    // Call the moveToPoint function with the updated gains and additional parameters
-    chassis.moveToPoint(x, y, timeout, {
-    .forwards = forwards,
-    .maxSpeed = maxSpeed,
-    .minSpeed = minSpeed,
-    .earlyExitRange = earlyExitRange
-    });
-}
+//     // Call the moveToPoint function with the updated gains and additional parameters
+//     chassis.moveToPoint(x, y, timeout, {
+//     .forwards = forwards,
+//     .maxSpeed = maxSpeed,
+//     .minSpeed = minSpeed,
+//     .earlyExitRange = earlyExitRange
+//     });
+// }
 
-void moveToPoseWithScheduler(lemlib::Chassis& chassis, double x, double y, double theta, int timeout, 
-    bool forwards = true, float maxSpeed = 127, float minSpeed = 0, 
-    float lead = 0.0, float horizontalDrift = 0.0) {
-    // Define PID gains for different phases (linear and angular)
-    PIDGains farLinearGains = {10.0, 0.0, 3.0}; // High kp for fast movement
-    PIDGains mediumLinearGains = {6.0, 0.5, 2.0}; // Moderate kp and ki for controlled movement
-    PIDGains closeLinearGains = {2.0, 0.1, 1.0}; // Low kp and kd for precision
+// void moveToPoseWithScheduler(lemlib::Chassis& chassis, double x, double y, double theta, int timeout, 
+//     bool forwards = true, float maxSpeed = 127, float minSpeed = 0, 
+//     float lead = 0.0, float horizontalDrift = 0.0) {
+//     // Define PID gains for different phases (linear and angular)
+//     PIDGains farLinearGains = {10.0, 0.0, 3.0}; // High kp for fast movement
+//     PIDGains mediumLinearGains = {6.0, 0.5, 2.0}; // Moderate kp and ki for controlled movement
+//     PIDGains closeLinearGains = {2.0, 0.1, 1.0}; // Low kp and kd for precision
 
-    PIDGains farAngularGains = {6.0, 0.0, 1.5}; // High kp for fast turning
-    PIDGains mediumAngularGains = {4.0, 0.2, 1.0}; // Moderate kp and ki for controlled turning
-    PIDGains closeAngularGains = {2.0, 0.1, 0.5}; // Low kp and kd for precise turning
+//     PIDGains farAngularGains = {6.0, 0.0, 1.5}; // High kp for fast turning
+//     PIDGains mediumAngularGains = {4.0, 0.2, 1.0}; // Moderate kp and ki for controlled turning
+//     PIDGains closeAngularGains = {2.0, 0.1, 0.5}; // Low kp and kd for precise turning
 
-    // Thresholds for switching between gains
-    double farThreshold = 36.0; // Inches (switch to far gains beyond this distance)
-    double mediumThreshold = 24.0; // Inches (switch to medium gains beyond this distance)
+//     // Thresholds for switching between gains
+//     double farThreshold = 36.0; // Inches (switch to far gains beyond this distance)
+//     double mediumThreshold = 24.0; // Inches (switch to medium gains beyond this distance)
 
-    double farAngularThreshold = 90.0; // Degrees (switch to far angular gains beyond this error)
-    double mediumAngularThreshold = 45.0; // Degrees (switch to medium angular gains beyond this error)
+//     double farAngularThreshold = 90.0; // Degrees (switch to far angular gains beyond this error)
+//     double mediumAngularThreshold = 45.0; // Degrees (switch to medium angular gains beyond this error)
 
-    // Get the current pose of the robot
-    lemlib::Pose currentPose = chassis.getPose();
+//     // Get the current pose of the robot
+//     lemlib::Pose currentPose = chassis.getPose();
 
-    // Calculate the distance to the target (linear error)
-    double distanceToTarget = std::sqrt(std::pow(x - currentPose.x, 2) + std::pow(y - currentPose.y, 2));
+//     // Calculate the distance to the target (linear error)
+//     double distanceToTarget = std::sqrt(std::pow(x - currentPose.x, 2) + std::pow(y - currentPose.y, 2));
 
-    // Calculate the heading error (angular error)
-    double headingError = std::abs(theta - currentPose.theta);
-    // Normalize heading error to [-180, 180]
-    if (headingError > 180) headingError -= 360;
-    if (headingError < -180) headingError += 360;
-    headingError = std::abs(headingError);
+//     // Calculate the heading error (angular error)
+//     double headingError = std::abs(theta - currentPose.theta);
+//     // Normalize heading error to [-180, 180]
+//     if (headingError > 180) headingError -= 360;
+//     if (headingError < -180) headingError += 360;
+//     headingError = std::abs(headingError);
 
-    // Interpolate linear gains based on distance
-    PIDGains selectedLinearGains;
-    if (distanceToTarget > farThreshold) {
-        selectedLinearGains = farLinearGains; // Use far gains for fast movement
-    } else if (distanceToTarget > mediumThreshold) {
-    // Interpolate between far and medium gains
-        double t = (distanceToTarget - mediumThreshold) / (farThreshold - mediumThreshold);
-        selectedLinearGains = interpolatePID(mediumLinearGains, farLinearGains, t);
-    } else if (distanceToTarget > 0) {
-    // Interpolate between medium and close gains
-        double t = distanceToTarget / mediumThreshold;
-        selectedLinearGains = interpolatePID(closeLinearGains, mediumLinearGains, t);
-    } else {
-        selectedLinearGains = closeLinearGains; // Use close gains for precision
-    }
+//     // Interpolate linear gains based on distance
+//     PIDGains selectedLinearGains;
+//     if (distanceToTarget > farThreshold) {
+//         selectedLinearGains = farLinearGains; // Use far gains for fast movement
+//     } else if (distanceToTarget > mediumThreshold) {
+//     // Interpolate between far and medium gains
+//         double t = (distanceToTarget - mediumThreshold) / (farThreshold - mediumThreshold);
+//         selectedLinearGains = interpolatePID(mediumLinearGains, farLinearGains, t);
+//     } else if (distanceToTarget > 0) {
+//     // Interpolate between medium and close gains
+//         double t = distanceToTarget / mediumThreshold;
+//         selectedLinearGains = interpolatePID(closeLinearGains, mediumLinearGains, t);
+//     } else {
+//         selectedLinearGains = closeLinearGains; // Use close gains for precision
+//     }
 
-    // Interpolate angular gains based on heading error
-    PIDGains selectedAngularGains;
-    if (headingError > farAngularThreshold) {
-        selectedAngularGains = farAngularGains; // Use far gains for fast turning
-    } else if (headingError > mediumAngularThreshold) {
-    // Interpolate between far and medium gains
-        double t = (headingError - mediumAngularThreshold) / (farAngularThreshold - mediumAngularThreshold);
-        selectedAngularGains = interpolatePID(mediumAngularGains, farAngularGains, t);
-    } else if (headingError > 0) {
-    // Interpolate between medium and close gains
-        double t = headingError / mediumAngularThreshold;
-        selectedAngularGains = interpolatePID(closeAngularGains, mediumAngularGains, t);
-    } else {
-        selectedAngularGains = closeAngularGains; // Use close gains for precise turning
-    }
+//     // Interpolate angular gains based on heading error
+//     PIDGains selectedAngularGains;
+//     if (headingError > farAngularThreshold) {
+//         selectedAngularGains = farAngularGains; // Use far gains for fast turning
+//     } else if (headingError > mediumAngularThreshold) {
+//     // Interpolate between far and medium gains
+//         double t = (headingError - mediumAngularThreshold) / (farAngularThreshold - mediumAngularThreshold);
+//         selectedAngularGains = interpolatePID(mediumAngularGains, farAngularGains, t);
+//     } else if (headingError > 0) {
+//     // Interpolate between medium and close gains
+//         double t = headingError / mediumAngularThreshold;
+//         selectedAngularGains = interpolatePID(closeAngularGains, mediumAngularGains, t);
+//     } else {
+//         selectedAngularGains = closeAngularGains; // Use close gains for precise turning
+//     }
 
-    // Update the linear and angular controller gains
-    chassis.setLinearGains(selectedLinearGains.kp, selectedLinearGains.ki, selectedLinearGains.kd);
-    chassis.setAngularGains(selectedAngularGains.kp, selectedAngularGains.ki, selectedAngularGains.kd);
+//     // Update the linear and angular controller gains
+//     chassis.setLinearGains(selectedLinearGains.kp, selectedLinearGains.ki, selectedLinearGains.kd);
+//     chassis.setAngularGains(selectedAngularGains.kp, selectedAngularGains.ki, selectedAngularGains.kd);
 
-    // Call the moveToPose function with the updated gains and additional parameters
-    chassis.moveToPose(x, y, theta, timeout, {
-    .forwards = forwards,
-    .horizontalDrift = horizontalDrift,
-    .lead = lead,
-    .maxSpeed = maxSpeed,
-    .minSpeed = minSpeed,
+//     // Call the moveToPose function with the updated gains and additional parameters
+//     chassis.moveToPose(x, y, theta, timeout, {
+//     .forwards = forwards,
+//     .horizontalDrift = horizontalDrift,
+//     .lead = lead,
+//     .maxSpeed = maxSpeed,
+//     .minSpeed = minSpeed,
     
-    });
-}
+//     });
+// }
 
-// PID Gain Scheduler for turnToPoint
-void turnToPointWithScheduler(lemlib::Chassis& chassis, double x, double y, int timeout, 
-    float maxSpeed = 127, float minSpeed = 0, float earlyExitRange = 0.0) {
-    // Define PID gains for different phases (angular only)
-    PIDGains farAngularGains = {6.0, 0.0, 1.5}; // High kp for fast turning
-    PIDGains mediumAngularGains = {4.0, 0.2, 1.0}; // Moderate kp and ki for controlled turning
-    PIDGains closeAngularGains = {2.0, 0.1, 0.5}; // Low kp and kd for precise turning
+// // PID Gain Scheduler for turnToPoint
+// void turnToPointWithScheduler(lemlib::Chassis& chassis, double x, double y, int timeout, 
+//     float maxSpeed = 127, float minSpeed = 0, float earlyExitRange = 0.0) {
+//     // Define PID gains for different phases (angular only)
+//     PIDGains farAngularGains = {6.0, 0.0, 1.5}; // High kp for fast turning
+//     PIDGains mediumAngularGains = {4.0, 0.2, 1.0}; // Moderate kp and ki for controlled turning
+//     PIDGains closeAngularGains = {2.0, 0.1, 0.5}; // Low kp and kd for precise turning
 
-    // Thresholds for switching between gains
-    double farAngularThreshold = 90.0; // Degrees (switch to far angular gains beyond this error)
-    double mediumAngularThreshold = 45.0; // Degrees (switch to medium angular gains beyond this error)
+//     // Thresholds for switching between gains
+//     double farAngularThreshold = 90.0; // Degrees (switch to far angular gains beyond this error)
+//     double mediumAngularThreshold = 45.0; // Degrees (switch to medium angular gains beyond this error)
 
-    // Get the current pose of the robot
-    lemlib::Pose currentPose = chassis.getPose();
+//     // Get the current pose of the robot
+//     lemlib::Pose currentPose = chassis.getPose();
 
-    // Calculate the heading error (angular error)
-    double targetHeading = std::atan2(y - currentPose.y, x - currentPose.x) * 180 / M_PI; // Convert to degrees
-    double headingError = std::abs(targetHeading - currentPose.theta);
-    // Normalize heading error to [-180, 180]
-    if (headingError > 180) headingError -= 360;
-    if (headingError < -180) headingError += 360;
-    headingError = std::abs(headingError);
+//     // Calculate the heading error (angular error)
+//     double targetHeading = std::atan2(y - currentPose.y, x - currentPose.x) * 180 / M_PI; // Convert to degrees
+//     double headingError = std::abs(targetHeading - currentPose.theta);
+//     // Normalize heading error to [-180, 180]
+//     if (headingError > 180) headingError -= 360;
+//     if (headingError < -180) headingError += 360;
+//     headingError = std::abs(headingError);
 
-    // Interpolate angular gains based on heading error
-    PIDGains selectedAngularGains;
-    if (headingError > farAngularThreshold) {
-        selectedAngularGains = farAngularGains; // Use far gains for fast turning
-    } else if (headingError > mediumAngularThreshold) {
-        // Interpolate between far and medium gains
-        double t = (headingError - mediumAngularThreshold) / (farAngularThreshold - mediumAngularThreshold);
-        selectedAngularGains = interpolatePID(mediumAngularGains, farAngularGains, t);
-    } else if (headingError > 0) {
-        // Interpolate between medium and close gains
-        double t = headingError / mediumAngularThreshold;
-        selectedAngularGains = interpolatePID(closeAngularGains, mediumAngularGains, t);
-    } else {
-        selectedAngularGains = closeAngularGains; // Use close gains for precise turning
-    }
+//     // Interpolate angular gains based on heading error
+//     PIDGains selectedAngularGains;
+//     if (headingError > farAngularThreshold) {
+//         selectedAngularGains = farAngularGains; // Use far gains for fast turning
+//     } else if (headingError > mediumAngularThreshold) {
+//         // Interpolate between far and medium gains
+//         double t = (headingError - mediumAngularThreshold) / (farAngularThreshold - mediumAngularThreshold);
+//         selectedAngularGains = interpolatePID(mediumAngularGains, farAngularGains, t);
+//     } else if (headingError > 0) {
+//         // Interpolate between medium and close gains
+//         double t = headingError / mediumAngularThreshold;
+//         selectedAngularGains = interpolatePID(closeAngularGains, mediumAngularGains, t);
+//     } else {
+//         selectedAngularGains = closeAngularGains; // Use close gains for precise turning
+//     }
 
-    // Update the angular controller gains
-    chassis.setAngularGains(selectedAngularGains.kp, selectedAngularGains.ki, selectedAngularGains.kd);
+//     // Update the angular controller gains
+//     chassis.setAngularGains(selectedAngularGains.kp, selectedAngularGains.ki, selectedAngularGains.kd);
 
-    // Call the turnToPoint function with the updated gains
-    chassis.turnToPoint(x, y, timeout, {
-        .maxSpeed = static_cast<int>(maxSpeed),
-        .minSpeed = static_cast<int>(minSpeed),
-        .earlyExitRange = earlyExitRange
-    });
-}
+//     // Call the turnToPoint function with the updated gains
+//     chassis.turnToPoint(x, y, timeout, {
+//         .maxSpeed = static_cast<int>(maxSpeed),
+//         .minSpeed = static_cast<int>(minSpeed),
+//         .earlyExitRange = earlyExitRange
+//     });
+// }
 
-// PID Gain Scheduler for turnToHeading
-void turnToHeadingWithScheduler(lemlib::Chassis& chassis, double targetHeading, int timeout, 
-    float maxSpeed = 127, float minSpeed = 0, 
-    lemlib::AngularDirection direction = lemlib::AngularDirection::CW_CLOCKWISE) {
-    // Define PID gains for different phases (angular only)
-    PIDGains farAngularGains = {100.0, 0.0, 1.5}; // High kp for fast turning
-    PIDGains mediumAngularGains = {100.0, 0.2, 1.0}; // Moderate kp and ki for controlled turning
-    PIDGains closeAngularGains = {100.0, 0.1, 0.5}; // Low kp and kd for precise turning
+// // PID Gain Scheduler for turnToHeading
+// void turnToHeadingWithScheduler(lemlib::Chassis& chassis, double targetHeading, int timeout, 
+//     float maxSpeed = 127, float minSpeed = 0, 
+//     lemlib::AngularDirection direction = lemlib::AngularDirection::CW_CLOCKWISE) {
+//     // Define PID gains for different phases (angular only)
+//     PIDGains farAngularGains = {100.0, 0.0, 1.5}; // High kp for fast turning
+//     PIDGains mediumAngularGains = {100.0, 0.2, 1.0}; // Moderate kp and ki for controlled turning
+//     PIDGains closeAngularGains = {100.0, 0.1, 0.5}; // Low kp and kd for precise turning
 
-    // Thresholds for switching between gains
-    double farAngularThreshold = 90.0; // Degrees (switch to far angular gains beyond this error)
-    double mediumAngularThreshold = 45.0; // Degrees (switch to medium angular gains beyond this error)
+//     // Thresholds for switching between gains
+//     double farAngularThreshold = 90.0; // Degrees (switch to far angular gains beyond this error)
+//     double mediumAngularThreshold = 45.0; // Degrees (switch to medium angular gains beyond this error)
 
-    // Get the current pose of the robot
-    lemlib::Pose currentPose = chassis.getPose();
+//     // Get the current pose of the robot
+//     lemlib::Pose currentPose = chassis.getPose();
 
-    // Calculate the heading error (angular error)
-    double headingError = std::abs(targetHeading - currentPose.theta);
-    // Normalize heading error to [-180, 180]
-    if (headingError > 180) headingError -= 360;
-    if (headingError < -180) headingError += 360;
-    headingError = std::abs(headingError);
+//     // Calculate the heading error (angular error)
+//     double headingError = std::abs(targetHeading - currentPose.theta);
+//     // Normalize heading error to [-180, 180]
+//     if (headingError > 180) headingError -= 360;
+//     if (headingError < -180) headingError += 360;
+//     headingError = std::abs(headingError);
 
-    // Interpolate angular gains based on heading error
-    PIDGains selectedAngularGains;
-    if (headingError > farAngularThreshold) {
-        selectedAngularGains = farAngularGains; // Use far gains for fast turning
-    } else if (headingError > mediumAngularThreshold) {
-        // Interpolate between far and medium gains
-        double t = (headingError - mediumAngularThreshold) / (farAngularThreshold - mediumAngularThreshold);
-        selectedAngularGains = interpolatePID(mediumAngularGains, farAngularGains, t);
-    } else if (headingError > 0) {
-        // Interpolate between medium and close gains
-        double t = headingError / mediumAngularThreshold;
-        selectedAngularGains = interpolatePID(closeAngularGains, mediumAngularGains, t);
-    } else {
-        selectedAngularGains = closeAngularGains; // Use close gains for precise turning
-    }
+//     // Interpolate angular gains based on heading error
+//     PIDGains selectedAngularGains;
+//     if (headingError > farAngularThreshold) {
+//         selectedAngularGains = farAngularGains; // Use far gains for fast turning
+//     } else if (headingError > mediumAngularThreshold) {
+//         // Interpolate between far and medium gains
+//         double t = (headingError - mediumAngularThreshold) / (farAngularThreshold - mediumAngularThreshold);
+//         selectedAngularGains = interpolatePID(mediumAngularGains, farAngularGains, t);
+//     } else if (headingError > 0) {
+//         // Interpolate between medium and close gains
+//         double t = headingError / mediumAngularThreshold;
+//         selectedAngularGains = interpolatePID(closeAngularGains, mediumAngularGains, t);
+//     } else {
+//         selectedAngularGains = closeAngularGains; // Use close gains for precise turning
+//     }
 
-    // Update the angular controller gains
-    chassis.setAngularGains(selectedAngularGains.kp, selectedAngularGains.ki, selectedAngularGains.kd);
+//     // Update the angular controller gains
+//     chassis.setAngularGains(selectedAngularGains.kp, selectedAngularGains.ki, selectedAngularGains.kd);
 
-    // Call the turnToHeading function with the updated gains
-    chassis.turnToHeading(targetHeading, timeout, {
-        .direction = direction,
-        .maxSpeed = static_cast<int>(maxSpeed),
-        .minSpeed = static_cast<int>(minSpeed)
-    });
-}
+//     // Call the turnToHeading function with the updated gains
+//     chassis.turnToHeading(targetHeading, timeout, {
+//         .direction = direction,
+//         .maxSpeed = static_cast<int>(maxSpeed),
+//         .minSpeed = static_cast<int>(minSpeed)
+//     });
+// }
 
-// gotopoint
-void gotopoint(lemlib::Chassis& chassis, float x, float y, int timeout, bool forwards = true, float maxSpeed = 127, float minSpeed = 0) {
-    // First, turn to face the point
-    chassis.turnToPoint(x, y, timeout, {.forwards = forwards, .maxSpeed = static_cast<int>(maxSpeed)});
 
-    // Then, move to the point
-    chassis.moveToPoint(x, y, timeout, {.forwards = forwards, .maxSpeed = maxSpeed, .minSpeed = minSpeed});
-}
 
 // controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -586,6 +584,8 @@ void clampTask() {
         pros::delay(20);
     }
 }
+
+
 
 pros::adi::DigitalOut intakeLift('F');
 
@@ -780,7 +780,6 @@ void resetLift() {
 
 
 
-
 // motor groups
 pros::MotorGroup leftMotors({-20, -12, -14}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
 pros::MotorGroup rightMotors({18, 17, 15}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
@@ -825,11 +824,11 @@ lemlib::ControllerSettings linearController(54, // proportional gain (kP)
                                             0.08, // integral gain (kI)
                                             440, // derivative gain (kD)
                                             2, // anti windup
-                                            0, // small error range, in inches
-                                            0, // small error range timeout, in milliseconds
-                                            0, // large error range, in inches
-                                            0, // large error range timeout, in milliseconds
-                                            0 // maximum acceleration (slew)
+                                            1, // small error range, in inches
+                                            100, // small error range timeout, in milliseconds
+                                            3, // large error range, in inches
+                                            500, // large error range timeout, in milliseconds
+                                            20 // maximum acceleration (slew)
 );
 
 
@@ -839,12 +838,66 @@ lemlib::ControllerSettings angularController(6.1, // proportional gain (kP)
                                              0.5, // integral gain (kI)
                                              70, // derivative gain (kD)
                                              4, // anti windup
-                                             0, // small error range, in degrees
-                                             0, // small error range timeout, in milliseconds
-                                             0, // large error range, in degrees
-                                             0, // large error range timeout, in milliseconds
-                                             0 // maximum acceleration (slew)
+                                             1, // small error range, in degrees
+                                             100, // small error range timeout, in milliseconds
+                                             3, // large error range, in degrees
+                                             500, // large error range timeout, in milliseconds
+                                             20 // maximum acceleration (slew)
 );
+
+// Fast linear controller - optimized for speed
+lemlib::ControllerSettings fastLinear(
+    500,    // kP 
+    0,  // kI 
+    0,   // kD 
+    0,     // windupRange
+    0,     // smallError
+    0,   // smallErrorTimeout
+    0,     // largeError
+    0,   // largeErrorTimeout
+    0     // slew
+);
+
+// Fast angular controller  
+lemlib::ControllerSettings fastAngular(
+    6.1,   // kP
+    0.5,   // kI 
+    70,    // kD
+    4,     // windupRange
+    3,     // smallError
+    100,   // smallErrorTimeout
+    8,     // largeError
+    500,   // largeErrorTimeout
+    0     // slew
+);
+
+// Accurate linear controller - optimized for precision
+lemlib::ControllerSettings accurateLinear(
+    150,    // kP 
+    2.0,   // kI 
+    0,   // kD 
+    2,     // windupRange
+    0.5,   // smallError 
+    200,   // smallErrorTimeout 
+    2,     // largeError 
+    800,   // largeErrorTimeout 
+    0     // slew
+);
+
+// Accurate angular controller
+lemlib::ControllerSettings accurateAngular(
+    150.0,   // kP 
+    0,   // kI 
+    0,    // kD
+    0,     // windupRange
+    0,     // smallError
+    0,   // smallErrorTimeout
+    0,     // largeError
+    0,   // largeErrorTimeout
+    0     // slew
+);
+
+
 
 // sensors for odometry
 lemlib::OdomSensors sensors(nullptr, // vertical tracking wheel
@@ -869,6 +922,14 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
 
 // create the chassis
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
+lemlib::Chassis whaleacurate(drivetrain, accurateLinear, accurateAngular, sensors, &throttleCurve, &steerCurve);
+lemlib::Chassis whalefast(drivetrain, fastLinear, fastAngular, sensors, &throttleCurve, &steerCurve);
+
+
+lemlib::Whale whale(chassis);
+
+
+
 
 // // create the chassis
 // ForcedImuChassis chassis(
@@ -879,7 +940,7 @@ lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors
 //     &imu, // Pass IMU reference
 //     &throttleCurve,
 //     &steerCurve
-// );
+// ):
 
 
 
@@ -893,6 +954,10 @@ lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+    whale.setMovementProfiles(
+    lemlib::MovementConfig(fastLinear, fastAngular),
+    lemlib::MovementConfig(accurateLinear, accurateAngular)
+    );
     pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
     lbrotation.set_position(0);
@@ -1180,11 +1245,17 @@ void autonomous() {
     // resetLift();
     //-44.5 -13.1
     
-    chassis.setPose(0,0,0);
-    chassis.moveToPoint(0, 36, 5000);
-    pros::delay(3000);
-    chassis.turnToHeading(90, 100);
+    // chassis.setPose(0,0,0);
+    // chassis.moveToPoint(0, 36, 5000);
+    // pros::delay(3000);
+    // chassis.turnToHeading(90, 100);
+
+    whale.setPose(0, 0, 0);
+    whalefast.moveToPoint(0, 24, 5000);
+    pros::delay(2000);
+    whaleacurate.moveToPoint(0, 48, 5000);
 }
+
 
 
 

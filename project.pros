@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "Skills",
+    "project_name": "Whalelib",
     "target": "v5",
     "templates": {
       "LemLib": {
@@ -297,7 +297,10 @@
         "version": "8.3.8"
       }
     },
-    "upload_options": {},
+    "upload_options": {
+      "description": "Custom Library",
+      "icon": "ufo"
+    },
     "use_early_access": false
   }
 }
