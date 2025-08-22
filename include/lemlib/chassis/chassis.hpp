@@ -10,6 +10,8 @@
 #include "lemlib/driveCurve.hpp"
 
 namespace lemlib {
+class Whale;
+
 
 /**
  * @brief class containing the sensors used for odometry
@@ -48,12 +50,18 @@ class OdomSensors {
         TrackingWheel* horizontal2;
         pros::Imu* imu;
 };
-
 /**
  * @brief class containing constants for a chassis controller
  */
 class ControllerSettings {
     public:
+        /**
+         * @brief Default constructor for ControllerSettings
+         *
+         * Initializes all values to 0.
+         */
+
+
         /**
          * @brief ControllerSettings constructor
          *
@@ -321,6 +329,8 @@ struct MoveToPointParams {
         /** distance between the robot and target point where the movement will exit. Only has an effect if minSpeed is
          * non-zero.*/
         float earlyExitRange = 0;
+
+
 };
 
 // default drive curve
@@ -330,19 +340,9 @@ extern ExpoDriveCurve defaultDriveCurve;
  * @brief Chassis class
  */
 class Chassis {
+    friend class Whale; // Add this line to make Whale a friend
+
     public:
-                // Add these setter methods
-        void setLinearGains(double kP, double kI, double kD) {
-                linearController.kP = kP;
-                linearController.kI = kI;
-                linearController.kD = kD;
-        }
-            
-        void setAngularGains(double kP, double kI, double kD) {
-                angularController.kP = kP;
-                angularController.kI = kI;
-                angularController.kD = kD;
-        }
         /**
          * @brief Chassis constructor
          *
