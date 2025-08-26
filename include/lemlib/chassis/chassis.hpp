@@ -333,6 +333,14 @@ struct MoveToPointParams {
 
 };
 
+struct MoveToPointParamsfalse {
+    bool forwards = false;      // Default to forward movement
+    float maxSpeed = 127;      // Default max speed
+    float minSpeed = 0;        // Default min speed  
+    float earlyExitRange = 0;  // Default early exit range
+};
+
+
 // default drive curve
 extern ExpoDriveCurve defaultDriveCurve;
 

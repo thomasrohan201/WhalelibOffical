@@ -1,9 +1,10 @@
 #include "lemlib/chassis/whalelibchassis.hpp"
 #include "lemlib/chassis/chassis.hpp"
+#include <cmath>
 
 namespace lemlib {
 
-// Create default ControllerSettings for initialization
+    // Create default ControllerSettings for initialization
 const ControllerSettings DEFAULT_LINEAR = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 const ControllerSettings DEFAULT_ANGULAR = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -120,6 +121,38 @@ void Whale::resetToDefaultProfile() {
     currentProfile = fastProfile;
     applyControllerSettings(fastProfile.linear, fastProfile.angular);
 }
+
+void Whale::moveForward(float inches, int timeout, bool accurate,
+                       const MoveToPointParams& params) {
+    Pose current = getPose();
+    
+    // For 0° = North coordinate system:
+    float targetX = current.x + inches * sin(current.theta * M_PI / 180.0);
+    float targetY = current.y + inches * cos(current.theta * M_PI / 180.0);
+    
+    printf("CURRENT: X=%.2f, Y=%.2f, Theta=%.2f deg\n", current.x, current.y, current.theta);
+    printf("TARGET:  X=%.2f, Y=%.2f\n", targetX, targetY);
+    
+    moveToPoint(targetX, targetY, timeout, accurate, params);
+}
+
+void Whale::moveBackward(float inches, int timeout, bool accurate,
+                        const MoveToPointParams& params) {
+    Pose current = getPose();
+    
+    // Use NEGATIVE inches to calculate point BEHIND the robot
+    float targetX = current.x + (-inches) * sin(current.theta * M_PI / 180.0);
+    float targetY = current.y + (-inches) * cos(current.theta * M_PI / 180.0);
+    
+    printf("CURRENT: X=%.2f, Y=%.2f, Theta=%.2f deg\n", current.x, current.y, current.theta);
+    printf("TARGET:  X=%.2f, Y=%.2f (BEHIND)\n", targetX, targetY);
+    
+    MoveToPointParams reverseParams = params;
+    reverseParams.forwards = false; // Also force reverse driving
+    
+    moveToPoint(targetX, targetY, timeout, accurate, reverseParams);
+}
+
 
 MovementConfig Whale::getCurrentProfile() const { return currentProfile; }
 MovementConfig Whale::getFastProfile() const { return fastProfile; }

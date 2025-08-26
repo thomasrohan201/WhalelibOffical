@@ -78,6 +78,27 @@ public:
     void setManualPID(const ControllerSettings& linear, const ControllerSettings& angular);
     void revertToProfile();
 
+        
+    /**
+     * @brief Move forward a relative distance
+     * @param inches Distance to move forward in inches
+     * @param timeout Maximum time in milliseconds
+     * @param accurate Whether to use accurate profile
+     * @param params Movement parameters
+     */
+    void moveForward(float inches, int timeout, bool accurate = false,
+                    const MoveToPointParams& params = {});
+    
+    /**
+     * @brief Move backward a relative distance
+     * @param inches Distance to move backward in inches
+     * @param timeout Maximum time in milliseconds
+     * @param accurate Whether to use accurate profile
+     * @param params Movement parameters
+     */
+    void moveBackward(float inches, int timeout, bool accurate = false,
+                     const MoveToPointParams& params = {});
+
 private:
     Chassis& chassis;
     MovementConfig fastProfile;
@@ -90,6 +111,11 @@ private:
     void applyControllerSettings(const ControllerSettings& linear, 
                                const ControllerSettings& angular);
     void setProfile(bool accurate);
+
+    
+
+
+
 };
 
 } // namespace lemlib

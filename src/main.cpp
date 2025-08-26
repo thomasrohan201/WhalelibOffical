@@ -16,104 +16,11 @@
 #include "lemlib/chassis/chassis.hpp"
 using pros::delay;
 
-//add breafs to the new functions
-
-
-
-
-
-
-// class ForcedImuChassis : public lemlib::Chassis {
-// public:
-//     lemlib::Pose getPose(bool radians = false, bool standardPos = false) {
-//         lemlib::Pose pose = lemlib::Chassis::getPose(radians, standardPos);
-        
-//         if (imu != nullptr) {
-//             try {
-//                 float imuHeading = imu->get_heading();
-//                 pose.theta = imuHeading;
-//                 if (radians) pose.theta *= M_PI / 180.0f;
-//             } catch (const std::exception& e) {
-//                 // IMU error - fall back to chassis heading
-//                 printf("IMU Error: %s\n", e.what());
-//             }
-//         }
-        
-//         return pose;
-//     }
-
-//     // Constructor
-//     ForcedImuChassis(
-//         lemlib::Drivetrain drivetrain,
-//         lemlib::ControllerSettings linearSettings,
-//         lemlib::ControllerSettings angularSettings,
-//         lemlib::OdomSensors sensors,
-//         pros::Imu* imu,
-//         lemlib::DriveCurve* throttleCurve = &lemlib::defaultDriveCurve,
-//         lemlib::DriveCurve* steerCurve = &lemlib::defaultDriveCurve
-//     ) : lemlib::Chassis(drivetrain, linearSettings, angularSettings, sensors, throttleCurve, steerCurve),
-//         imu(imu) {}
-
-// private:
-//     pros::Imu* imu;
-// };
-
 
 bool clampState = false; // Clamp state (true = open, false = closed)
 bool flagState = false; // Flag state (true = open, false = closed)
 bool liftState = false; // Lift state (true = raised, false = lowered)
 
-namespace Math {
-    // Linear interpolation
-    inline float lerp(float a, float b, float t) {
-        return a + t * (b - a);
-    }
-
-    // Quadratic Bézier (3 control points)
-    inline lemlib::Pose bezierQuadratic(const lemlib::Pose& p0, 
-                                      const lemlib::Pose& p1, 
-                                      const lemlib::Pose& p2, 
-                                      float t) {
-        float x = lerp(lerp(p0.x, p1.x, t), lerp(p1.x, p2.x, t), t);
-        float y = lerp(lerp(p0.y, p1.y, t), lerp(p1.y, p2.y, t), t);
-        return {x, y, 0}; // Heading ignored for path points
-    }
-
-    // Cubic Bézier (4 control points)
-    inline lemlib::Pose bezierCubic(const lemlib::Pose& p0, 
-                                   const lemlib::Pose& p1, 
-                                   const lemlib::Pose& p2, 
-                                   const lemlib::Pose& p3, 
-                                   float t) {
-        float x = lerp(lerp(lerp(p0.x, p1.x, t), lerp(p1.x, p2.x, t), t),
-                     lerp(lerp(p1.x, p2.x, t), lerp(p2.x, p3.x, t), t), t);
-        float y = lerp(lerp(lerp(p0.y, p1.y, t), lerp(p1.y, p2.y, t), t),
-                     lerp(lerp(p1.y, p2.y, t), lerp(p2.y, p3.y, t), t), t);
-        return {x, y, 0};
-    }
-}
-
-void followBezier(lemlib::Chassis& chassis, 
-                 const lemlib::Pose& p0, 
-                 const lemlib::Pose& p1, 
-                 const lemlib::Pose& p2,
-                 const lemlib::Pose& p3 = lemlib::Pose(0, 0, 0),
-                 int steps = 20, 
-                 float max_speed = 127) {
-    
-    for (int i = 0; i <= steps; ++i) {
-        float t = static_cast<float>(i) / steps;
-        lemlib::Pose target(0, 0, 0);
-        
-        if (p3.x == 0 && p3.y == 0) {
-            target = Math::bezierQuadratic(p0, p1, p2, t); // 4 args
-        } else {
-            target = Math::bezierCubic(p0, p1, p2, p3, t); // 5 args
-        }
-
-        chassis.moveToPoint(target.x, target.y, 100, {.maxSpeed = max_speed});
-    }
-}
 
 
 
@@ -177,130 +84,6 @@ void checkSDCard() {
 
     fclose(file);
 }
-//movetopint with goal
-
-enum class LoadState {
-    NORMAL,      // Default drivetrain (no mobile goal) - uses your existing lemlib defaults
-    EMPTY,       // Just mobile goal (no rings)
-    HALF_RINGS,  // Mobile goal with ~4 rings
-    FULL_RINGS   // Mobile goal with ~8 rings
-};
-
-
-
-// const std::unordered_map<LoadState, PIDConfig> PID_GAINS = {
-//     // Normal mode (will use your existing lemlib defaults)
-//     {LoadState::NORMAL, {
-//         .linear  = {0, 0, 0},  // Placeholder - won't be used
-//         .angular = {0, 0, 0}    // Placeholder - won't be used
-//     }},
-    
-//     // Your exact tuned values
-//     {LoadState::EMPTY, {
-//         .linear  = {32,  0.002,  4000.0},
-//         .angular = {35.0, 0.04, 900.0}
-//     }},
-//     {LoadState::HALF_RINGS, {
-//         .linear  = {32,  0.002,  4000},
-//         .angular = {30.0, 0.02, 200}
-//     }},
-//     {LoadState::FULL_RINGS, {
-//         .linear  = {32,  0.002,  4000},
-//         .angular = {30,  0.02, 200}
-//     }}
-// };
-
-// void applyDrivetrainGains(lemlib::Chassis& chassis, LoadState load) {
-//     if (load == LoadState::NORMAL) {
-//         // Reset to your lemlib defaults (no changes)
-//         return; 
-//     }
-    
-//     // Apply your custom mobile goal gains
-//     const auto& config = PID_GAINS.at(load);
-//     chassis.setLinearGains(config.linear.kp, config.linear.ki, config.linear.kd);
-//     chassis.setAngularGains(config.angular.kp, config.angular.ki, config.angular.kd);
-// }
-
-
-// //FOLLOW ARC
-
-// void follow_arc(lemlib::Chassis& chassis, float end_x, float end_y, float radius, bool clockwise,
-//                int timeout = 5000, bool forwards = true, float max_speed = 127,
-//                float min_speed = 0, float earlyExitRange = 0) {
-//     // Get current position
-//     lemlib::Pose current_pos = chassis.getPose();
-    
-//     // Calculate center point of the arc
-//     float chord_length = sqrt(pow(end_x - current_pos.x, 2) + pow(end_y - current_pos.y, 2));
-//     float chord_angle = atan2(end_y - current_pos.y, end_x - current_pos.x);
-//     float arc_angle = 2 * asin(chord_length / (2 * radius));
-    
-//     // Determine center point based on clockwise/counter-clockwise
-//     float center_x, center_y;
-//     if (clockwise) {
-//         center_x = current_pos.x + radius * cos(chord_angle - M_PI_2);
-//         center_y = current_pos.y + radius * sin(chord_angle - M_PI_2);
-//     } else {
-//         center_x = current_pos.x + radius * cos(chord_angle + M_PI_2);
-//         center_y = current_pos.y + radius * sin(chord_angle + M_PI_2);
-//     }
-    
-//     // Calculate total angle to traverse
-//     float start_angle = atan2(current_pos.y - center_y, current_pos.x - center_x);
-//     float end_angle = atan2(end_y - center_y, end_x - center_x);
-//     float angle_diff = end_angle - start_angle;
-    
-//     // Adjust angle difference for clockwise movement
-//     if (clockwise) {
-//         if (angle_diff > 0) angle_diff -= 2 * M_PI;
-//     } else {
-//         if (angle_diff < 0) angle_diff += 2 * M_PI;
-//     }
-    
-//     // Break the arc into small segments and follow them
-//     const int segments = 20;
-//     for (int i = 1; i <= segments; i++) {
-//         float t = (float)i / segments;
-//         float segment_angle = start_angle + angle_diff * t;
-        
-//         // Calculate target point for this segment
-//         float target_x = center_x + radius * cos(segment_angle);
-//         float target_y = center_y + radius * sin(segment_angle);
-        
-//         // Calculate target heading (tangent to the arc)
-//         float target_heading;
-//         if (clockwise) {
-//             target_heading = segment_angle - M_PI_2;
-//         } else {
-//             target_heading = segment_angle + M_PI_2;
-//         }
-        
-//         // Normalize heading
-//         target_heading = fmod(target_heading, 2 * M_PI);
-//         if (target_heading < 0) target_heading += 2 * M_PI;
-        
-//         // Move to this segment point using designated initializers
-//         chassis.moveToPoint(target_x, target_y, timeout / segments, {
-//             .forwards = forwards,
-//             .maxSpeed = max_speed,
-//             .minSpeed = min_speed,
-//             .earlyExitRange = earlyExitRange
-//         });
-        
-//         // Turn to face tangent of the arc
-//         chassis.turnToPoint(target_x, target_y, timeout / segments, {
-//             .maxSpeed = static_cast<int>(max_speed),
-//             .minSpeed = static_cast<int>(min_speed),
-//             .earlyExitRange = earlyExitRange
-//         });
-//     }
-// }
-
-
-
-
-
 
 
 
@@ -819,43 +602,46 @@ lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
                               2 // horizontal drift is 2. If we had traction wheels, it would have been 8
 );
 
-// lateral motion controller
-lemlib::ControllerSettings linearController(54, // proportional gain (kP)
-                                            0.08, // integral gain (kI)
-                                            440, // derivative gain (kD)
-                                            2, // anti windup
-                                            1, // small error range, in inches
-                                            100, // small error range timeout, in milliseconds
-                                            3, // large error range, in inches
-                                            500, // large error range timeout, in milliseconds
-                                            20 // maximum acceleration (slew)
+
+
+
+// Accurate linear controller - optimized for precision
+lemlib::ControllerSettings accurateLinear(
+    54,    // kP 
+    0.08,   // kI 
+    440,   // kD 
+    2,     // windupRange
+    1,   // smallError 
+    100,   // smallErrorTimeout 
+    3,     // largeError 
+    500,   // largeErrorTimeout 
+    20     // slew
 );
 
-
-//2.35 and 1.5
-// angular motion controller
-lemlib::ControllerSettings angularController(6.1, // proportional gain (kP)
-                                             0.5, // integral gain (kI)
-                                             70, // derivative gain (kD)
-                                             4, // anti windup
-                                             1, // small error range, in degrees
-                                             100, // small error range timeout, in milliseconds
-                                             3, // large error range, in degrees
-                                             500, // large error range timeout, in milliseconds
-                                             20 // maximum acceleration (slew)
+// Accurate angular controller
+lemlib::ControllerSettings accurateAngular(
+    6.1,   // kP
+    0.5,   // kI 
+    70,    // kD
+    4,     // windupRange
+    3,     // smallError
+    100,   // smallErrorTimeout
+    8,     // largeError
+    500,   // largeErrorTimeout
+    0     // slew
 );
 
 // Fast linear controller - optimized for speed
 lemlib::ControllerSettings fastLinear(
-    500,    // kP 
-    0,  // kI 
-    0,   // kD 
-    0,     // windupRange
-    0,     // smallError
-    0,   // smallErrorTimeout
-    0,     // largeError
-    0,   // largeErrorTimeout
-    0     // slew
+    54,    // kP 
+    0.08,   // kI 
+    440,   // kD 
+    2,     // windupRange
+    1,   // smallError 
+    100,   // smallErrorTimeout 
+    3,     // largeError 
+    500,   // largeErrorTimeout 
+    20     // slew
 );
 
 // Fast angular controller  
@@ -870,34 +656,33 @@ lemlib::ControllerSettings fastAngular(
     500,   // largeErrorTimeout
     0     // slew
 );
+//put fast pid values For the following linearController and angularController
 
-// Accurate linear controller - optimized for precision
-lemlib::ControllerSettings accurateLinear(
-    150,    // kP 
-    2.0,   // kI 
-    0,   // kD 
-    2,     // windupRange
-    0.5,   // smallError 
-    200,   // smallErrorTimeout 
-    2,     // largeError 
-    800,   // largeErrorTimeout 
-    0     // slew
-);
-
-// Accurate angular controller
-lemlib::ControllerSettings accurateAngular(
-    150.0,   // kP 
-    0,   // kI 
-    0,    // kD
-    0,     // windupRange
-    0,     // smallError
-    0,   // smallErrorTimeout
-    0,     // largeError
-    0,   // largeErrorTimeout
-    0     // slew
-);
+// // lateral motion controller
+// lemlib::ControllerSettings linearController(54, // proportional gain (kP)
+//                                             0.08, // integral gain (kI)
+//                                             440, // derivative gain (kD)
+//                                             2, // anti windup
+//                                             1, // small error range, in inches
+//                                             100, // small error range timeout, in milliseconds
+//                                             3, // large error range, in inches
+//                                             500, // large error range timeout, in milliseconds
+//                                             20 // maximum acceleration (slew)
+// );
 
 
+// //2.35 and 1.5
+// // angular motion controller
+// lemlib::ControllerSettings angularController(6.1, // proportional gain (kP)
+//                                              0.5, // integral gain (kI)
+//                                              70, // derivative gain (kD)
+//                                              4, // anti windup
+//                                              1, // small error range, in degrees
+//                                              100, // small error range timeout, in milliseconds
+//                                              3, // large error range, in degrees
+//                                              500, // large error range timeout, in milliseconds
+//                                              20 // maximum acceleration (slew)
+// );
 
 // sensors for odometry
 lemlib::OdomSensors sensors(nullptr, // vertical tracking wheel
@@ -921,12 +706,13 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
 
 
 // create the chassis
-lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
+//lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 lemlib::Chassis whaleacurate(drivetrain, accurateLinear, accurateAngular, sensors, &throttleCurve, &steerCurve);
 lemlib::Chassis whalefast(drivetrain, fastLinear, fastAngular, sensors, &throttleCurve, &steerCurve);
-
-
-lemlib::Whale whale(chassis);
+lemlib::Chassis defaultChassis(drivetrain, fastLinear, fastAngular, sensors, &throttleCurve, &steerCurve);
+lemlib::Whale whale(defaultChassis);
+lemlib::Whale whaleFast(whalefast);
+lemlib::Whale whaleAccurate(whaleacurate);
 
 
 
@@ -954,15 +740,11 @@ lemlib::Whale whale(chassis);
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-    whale.setMovementProfiles(
-    lemlib::MovementConfig(fastLinear, fastAngular),
-    lemlib::MovementConfig(accurateLinear, accurateAngular)
-    );
+
     pros::lcd::initialize(); // initialize brain screen
-    chassis.calibrate(); // calibrate sensors
+    whalefast.calibrate(); // calibrate sensors
     lbrotation.set_position(0);
     checkSDCard();
-    // Clear the screen with a black background
     pros::screen::set_pen(0x000000); // Black color
     pros::screen::fill_rect(0, 0, 480, 272); // Full screen rectangle
 
@@ -984,7 +766,7 @@ void initialize() {
     pros::Task screenTask([&]() {
         while (true) {
             // Get the chassis pose
-            lemlib::Pose pose = chassis.getPose();
+            lemlib::Pose pose = whalefast.getPose();
 
             // Format the pose values as strings
             std::ostringstream xStream, yStream, thetaStream;
@@ -998,7 +780,7 @@ void initialize() {
             printToLine(true, 3, thetaStream.str()); // Print Theta on the left side, line 3
 
             // Log position telemetry (optional)
-            lemlib::telemetrySink()->info("Chassis pose: {}", chassis.getPose());
+            lemlib::telemetrySink()->info("Chassis pose: {}", whalefast.getPose());
 
             // Delay to save resources
             pros::delay(50);
@@ -1076,6 +858,7 @@ void autonomous() {
 
 
     //bezier curve 
+
 
 
     // EXAMPLE RT
@@ -1236,9 +1019,8 @@ void autonomous() {
     // chassis.turnToHeading(90, 1000);
 
 
-
     //loadState();
-    //pros::delay(2000);
+    //pros::delay(2000);f
     // //scoreHigh();
     //scoreBig();
     // pros::delay(2000);
@@ -1251,11 +1033,10 @@ void autonomous() {
     // chassis.turnToHeading(90, 100);
 
     whale.setPose(0, 0, 0);
-    whalefast.moveToPoint(0, 24, 5000);
     pros::delay(2000);
-    whaleacurate.moveToPoint(0, 48, 5000);
-}
+    whaleFast.moveBackward(30, 1000);
 
+}
 
 
 
@@ -1274,7 +1055,7 @@ void autonomous() {
         
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        chassis.arcade(leftY, rightX);
+        whalefast.arcade(leftY, rightX);
         
         // LADY BROWN LIFT CONTROL
         
