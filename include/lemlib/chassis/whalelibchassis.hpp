@@ -60,6 +60,9 @@ public:
                        bool accurate = false, const SwingToHeadingParams& params = {});
     void moveToPose(float x, float y, float heading, int timeout, bool accurate = false,
                    const MoveToPoseParams& params = {});
+    void resetPose(lemlib::Pose alignmentPoint, float alignmentDistance, int imu_port);
+    void resetPositionOnly(lemlib::Pose alignmentPoint, float alignmentDistance);
+    void setPoseDirect(float x, float y);
 
     // Profile management
     void setMovementProfiles(const MovementConfig& fastProfile, 

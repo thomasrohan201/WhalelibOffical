@@ -122,6 +122,36 @@ void Whale::resetToDefaultProfile() {
     applyControllerSettings(fastProfile.linear, fastProfile.angular);
 }
 
+void Whale::resetPose(lemlib::Pose alignmentPoint, float alignmentDistance, int imu_port) {
+    // Implementation from earlier
+    lemlib::Pose currentPose = chassis.getPose();
+    float dx = alignmentPoint.x - currentPose.x;
+    float dy = alignmentPoint.y - currentPose.y;
+    float angleToPoint = atan2f(dy, dx) * 180.0f / M_PI;
+    float trueHeading = fmod(angleToPoint + 180.0f + 360.0f, 360.0f);
+    float radians = trueHeading * M_PI / 180.0f;
+    float newX = alignmentPoint.x - alignmentDistance * cos(radians);
+    float newY = alignmentPoint.y - alignmentDistance * sin(radians);
+    chassis.setPose(newX, newY, trueHeading);
+    pros::c::imu_set_rotation(imu_port, trueHeading);
+}
+
+void Whale::resetPositionOnly(lemlib::Pose alignmentPoint, float alignmentDistance) {
+    // Implementation from earlier
+    float currentHeading = chassis.getPose().theta;
+    float radians = currentHeading * M_PI / 180.0f;
+    float newX = alignmentPoint.x - alignmentDistance * cos(radians);
+    float newY = alignmentPoint.y - alignmentDistance * sin(radians);
+    chassis.setPose(newX, newY, currentHeading);
+}
+
+void Whale::setPoseDirect(float x, float y) {
+    // Simple direct set
+    float currentHeading = chassis.getPose().theta;
+    chassis.setPose(x, y, currentHeading);
+}
+
+
 void Whale::moveForward(float inches, int timeout, bool accurate,
                        const MoveToPointParams& params) {
     Pose current = getPose();
