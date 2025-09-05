@@ -31,6 +31,52 @@ WhaleGainScheduler::WhaleGainScheduler(Chassis& chassis)
     originalConfig = Whale::getCurrentProfile();
 }
 
+// Add these methods anywhere in the lemlib namespace in your CPP file:
+
+void WhaleGainScheduler::setLinearGainScheduler(const PIDGains& farGains, const PIDGains& mediumGains, 
+                                               const PIDGains& closeGains, float farThreshold, 
+                                               float mediumThreshold) {
+    farLinearGains = farGains;
+    mediumLinearGains = mediumGains;
+    closeLinearGains = closeGains;
+    linearFarThreshold = farThreshold;
+    linearMediumThreshold = mediumThreshold;
+}
+
+void WhaleGainScheduler::setAngularGainScheduler(const PIDGains& farGains, const PIDGains& mediumGains, 
+                                                const PIDGains& closeGains, float farThreshold, 
+                                                float mediumThreshold) {
+    farAngularGains = farGains;
+    mediumAngularGains = mediumGains;
+    closeAngularGains = closeGains;
+    angularFarThreshold = farThreshold;
+    angularMediumThreshold = mediumThreshold;
+}
+
+void WhaleGainScheduler::setLinearInterpolationFunction(std::function<PIDGains(float distance, const Pose& current, const Pose& target)> func) {
+    linearInterpolationFunc = func;
+}
+
+void WhaleGainScheduler::setAngularInterpolationFunction(std::function<PIDGains(float error, const Pose& current, const Pose& target)> func) {
+    angularInterpolationFunc = func;
+}
+
+PIDGains WhaleGainScheduler::getCurrentLinearGains() const {
+    return currentLinearGains;
+}
+
+PIDGains WhaleGainScheduler::getCurrentAngularGains() const {
+    return currentAngularGains;
+}
+
+void WhaleGainScheduler::resetGainScheduler() {
+    if (gainsModified) {
+        Whale::revertToProfile();
+        gainsModified = false;
+    }
+}
+
+
 void WhaleGainScheduler::moveToPointWithScheduler(float x, float y, int timeout, 
                                                 bool forwards, float maxSpeed, 
                                                 float minSpeed, float earlyExitRange) {

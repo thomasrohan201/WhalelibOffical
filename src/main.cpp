@@ -90,8 +90,8 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 
 // motor groups
-pros::MotorGroup leftMotors({-20, -12, -14}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
-pros::MotorGroup rightMotors({18, 17, 15}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
+pros::MotorGroup leftMotors({-11, 12, -14}, pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
+pros::MotorGroup rightMotors({19, -18, 20}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
 
 // Inertial Sensor on port 10
 pros::Imu imu(16);
@@ -101,12 +101,12 @@ pros::Imu imu(16);
 // horizontal tracking wheel encoder. Rotation sensor, port 20, not reversed
 
 //hotracking
-pros::Rotation horizontalEnc(-13);
+pros::Rotation horizontalEnc(16);
 
 // vertical tracking wheel encoder. Rotation sensor, port 11, reversed
 //fix
 //pros::Rotation verticalEncleft(6);
-pros::Rotation verticalEncright(-19);
+pros::Rotation verticalEncright(17);
 
 
 // horizontal tracking wheel. 2.75" diameter, 5.75" offset, back of the robot (negative)
@@ -117,7 +117,7 @@ lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_2, -2);
 
 // vertical tracking wheel. 2.75" diameter, 2.5" offset, left of the robot (negative)
 //lemlib::TrackingWheel verticalleft(&verticalEncleft, lemlib::Omniwheel::NEW_325, -5.315);
-lemlib::TrackingWheel verticalright(&verticalEncright, lemlib::Omniwheel::NEW_325, 5.315);
+lemlib::TrackingWheel verticalright(&verticalEncright, lemlib::Omniwheel::NEW_2, 2);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
@@ -342,9 +342,8 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
  */
 void autonomous() {
 
-    whale.setPose(0, 0, 0);
-    whaleFast.moveToPoint(0, 24, 1000);
-    whale.waitUntil(10);
+    // whale.setPose(0, 0, 0);
+    // whaleFast.moveToPoint(0, 24, 3000);
 
 }
 
