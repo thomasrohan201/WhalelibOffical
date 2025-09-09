@@ -31,7 +31,6 @@ WhaleGainScheduler::WhaleGainScheduler(Chassis& chassis)
     originalConfig = Whale::getCurrentProfile();
 }
 
-// Add these methods anywhere in the lemlib namespace in your CPP file:
 
 void WhaleGainScheduler::setLinearGainScheduler(const PIDGains& farGains, const PIDGains& mediumGains, 
                                                const PIDGains& closeGains, float farThreshold, 
