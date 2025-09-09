@@ -335,6 +335,33 @@ void competition_initialize() {}
 ASSET(example_txt); // '.' replaced with "_" to make c++ happy
 
 
+void skillsauto() {
+
+}
+
+void awp() {
+
+
+}
+
+void rightauto1() {
+
+
+}
+
+void leftauto1() {
+
+}
+
+void rightauto2() {
+
+
+}
+
+void leftauto2() {
+
+}
+
 /**
  * Runs during auto
  *
@@ -342,8 +369,7 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
  */
 void autonomous() {
 
-    // whale.setPose(0, 0, 0);
-    // whaleFast.moveToPoint(0, 24, 3000);
+    skillsauto();
 
 }
 
